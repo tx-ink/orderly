@@ -46,6 +46,7 @@ function App() {
   const [taxRate, setTaxRate] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Array<{name: string, address: string}>>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [savedProducts, setSavedProducts] = useState<SavedProduct[]>([]);
@@ -197,20 +198,31 @@ function App() {
   };
 
   // Re-download an existing invoice
-  const redownloadInvoice = (invoice: SavedInvoice) => {
-    generateInvoice(
-      invoice.customerName, 
-      invoice.customerAddress, 
-      invoice.items, 
-      invoice.subtotal,
-      invoice.shippingCost,
-      invoice.taxRate,
-      invoice.taxAmount,
-      invoice.total, 
-      businessSettings, 
-      invoice.id, 
-      invoice.date
-    );
+  const redownloadInvoice = async (invoice: SavedInvoice) => {
+    try {
+      setNotification('Re-downloading PDF invoice...');
+      
+      await generateInvoice(
+        invoice.customerName, 
+        invoice.customerAddress, 
+        invoice.items, 
+        invoice.subtotal,
+        invoice.shippingCost,
+        invoice.taxRate,
+        invoice.taxAmount,
+        invoice.total, 
+        businessSettings, 
+        invoice.id, 
+        invoice.date
+      );
+      
+      setNotification('PDF invoice downloaded successfully!');
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error) {
+      console.error('Error re-downloading invoice:', error);
+      setNotification('Error downloading PDF. Please try again.');
+      setTimeout(() => setNotification(null), 5000);
+    }
   };
 
   // Product management functions
@@ -481,17 +493,30 @@ function App() {
     return groups;
   }, {} as Record<string, (PricedOrderItem & { originalIndex: number })[]>);
 
-  const handleGenerateInvoice = () => {
-    saveCustomer(); // Save customer before generating invoice
-    saveProducts(); // Save products with their prices
-    saveInvoice(); // Save the invoice record
-    generateInvoice(customerName, customerAddress, pricedItems, subtotal, shippingCost, taxRate, taxAmount, grandTotal, businessSettings, invoiceNumber, invoiceDate);
-    const newInvoiceNumber = invoiceNumber + 1;
-    setInvoiceNumber(newInvoiceNumber);
-    localStorage.setItem('orderly-invoice-number', newInvoiceNumber.toString());
-    
-    // Clear form for next invoice
-    clearForm();
+  const handleGenerateInvoice = async () => {
+    try {
+      setNotification('Generating PDF invoice...');
+      
+      saveCustomer(); // Save customer before generating invoice
+      saveProducts(); // Save products with their prices
+      saveInvoice(); // Save the invoice record
+      
+      await generateInvoice(customerName, customerAddress, pricedItems, subtotal, shippingCost, taxRate, taxAmount, grandTotal, businessSettings, invoiceNumber, invoiceDate);
+      
+      setNotification('PDF invoice downloaded successfully!');
+      setTimeout(() => setNotification(null), 3000);
+      
+      const newInvoiceNumber = invoiceNumber + 1;
+      setInvoiceNumber(newInvoiceNumber);
+      localStorage.setItem('orderly-invoice-number', newInvoiceNumber.toString());
+      
+      // Clear form for next invoice
+      clearForm();
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      setNotification('Error generating PDF. Please try again.');
+      setTimeout(() => setNotification(null), 5000);
+    }
   };
 
   const handleSettingsChange = (settings: BusinessSettings) => {
@@ -1118,6 +1143,13 @@ function App() {
               </button>
             </nav>
           </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className="notification">
+          {notification}
         </div>
       )}
 

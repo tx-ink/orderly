@@ -12,7 +12,7 @@ interface BusinessSettings {
   invoiceNote: string;
 }
 
-export const generateInvoice = (
+export const generateInvoice = async (
   customerName: string,
   customerAddress: string,
   items: PricedOrderItem[],
@@ -237,10 +237,38 @@ export const generateInvoice = (
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
       doc.text(businessSettings.invoiceNote, 20, noteY);
-    }
-  }// Save the PDF with customer name at the end of filename
+    }  }
+
+  // Save the PDF with customer name at the end of filename
   const cleanCustomerName = customerName.replace(/[^a-zA-Z0-9]/g, '') || 'Customer';
   const cleanDate = formattedDate.replace(/\//g, '-');
   const fileName = `Invoice-${invoiceNumber}-${cleanDate}-${cleanCustomerName}.pdf`;
-  doc.save(fileName);
+    // Use a more reliable download method that works better with browser security
+  try {
+    // Create blob and download link
+    const pdfBlob = doc.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    
+    // Create a temporary download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = fileName;
+    downloadLink.style.display = 'none';
+    
+    // Add to DOM, click, and remove
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    // Clean up the object URL
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    // Return success
+    return Promise.resolve();
+  } catch (error) {
+    console.error('Error downloading PDF:', error);
+    // Fallback to the original method
+    doc.save(fileName);
+    return Promise.reject(error);
+  }
 };

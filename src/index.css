@@ -1355,3 +1355,47 @@ textarea.form-input {
     justify-content: flex-end;
   }
 }
+
+/* Notification styles */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, 
+    rgba(16, 185, 129, 0.95) 0%, 
+    rgba(5, 150, 105, 0.95) 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 
+    var(--shadow-xl),
+    0 0 20px rgba(16, 185, 129, 0.3);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  font-weight: 500;
+  animation: slideInNotification 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 350px;
+  word-wrap: break-word;
+}
+
+@keyframes slideInNotification {
+  from {
+    transform: translateX(100%) translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Error notification variant */
+.notification.error {
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.95) 0%, 
+    rgba(220, 38, 38, 0.95) 100%);
+  box-shadow: 
+    var(--shadow-xl),
+    0 0 20px rgba(239, 68, 68, 0.3);
+}
