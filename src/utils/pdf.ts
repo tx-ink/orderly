@@ -162,10 +162,21 @@ export const generateInvoice = (
       5: { cellWidth: 25, halign: 'right' }   // Amount
     },
     margin: { left: 20, right: 20 }
-  });
-  // Get the final Y position after the table
-  const finalY = (doc as any).lastAutoTable.finalY || currentY + 100;  // Totals Section - Better positioning to avoid cutoff
-  const totalSectionY = finalY + 15;
+  });  // Get the final Y position after the table
+  const finalY = (doc as any).lastAutoTable.finalY || currentY + 100;
+  
+  // Totals Section - Better positioning to avoid cutoff
+  let totalSectionY = finalY + 15;
+  
+  // Check if we need a new page for totals
+  const totalsSectionHeight = 100; // Approximate height needed for totals
+  const availableSpace = pageHeight - totalSectionY - 60; // 60 for bottom margin and note
+  
+  if (availableSpace < totalsSectionHeight) {
+    doc.addPage();
+    totalSectionY = 40; // Start near top of new page
+  }
+  
   const rightAlignX = pageWidth - 20; // Right margin
   let totalRowY = totalSectionY;
   
@@ -206,15 +217,28 @@ export const generateInvoice = (
   doc.setFont('helvetica', 'bold');
   doc.text('Total:', rightAlignX - 60, totalRowY);
   doc.text(`$${grandTotal.toFixed(2)}`, rightAlignX, totalRowY, { align: 'right' });
-
-  // Note at bottom
+  
+  // Move to next line for note spacing
+  totalRowY += 20;
+  // Note at bottom - position based on current page
   if (businessSettings.invoiceNote) {
-    const noteY = pageHeight - 40;
-    doc.setTextColor(107, 114, 128);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'italic');
-    doc.text(businessSettings.invoiceNote, 20, noteY);
-  }  // Save the PDF with customer name at the end of filename
+    // Calculate note position - either at bottom of page or after totals with some spacing
+    const noteY = Math.max(totalRowY + 30, pageHeight - 40);
+    
+    // If note would go beyond page, add a new page
+    if (noteY > pageHeight - 30) {
+      doc.addPage();
+      doc.setTextColor(107, 114, 128);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text(businessSettings.invoiceNote, 20, 40);
+    } else {
+      doc.setTextColor(107, 114, 128);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text(businessSettings.invoiceNote, 20, noteY);
+    }
+  }// Save the PDF with customer name at the end of filename
   const cleanCustomerName = customerName.replace(/[^a-zA-Z0-9]/g, '') || 'Customer';
   const cleanDate = formattedDate.replace(/\//g, '-');
   const fileName = `Invoice-${invoiceNumber}-${cleanDate}-${cleanCustomerName}.pdf`;
