@@ -431,7 +431,9 @@ function App() {
   };
 
   const handleParse = () => {
+    console.log('Raw text:', rawText);
     const data = parseOrderData(rawText);
+    console.log('Parsed data:', data);
     const initialPricedItems = data.map(item => {
       const productName = item.category; // Use category as initial product name
       const suggestedPrice = getSuggestedPrice(productName);
@@ -444,6 +446,7 @@ function App() {
         subtotal: item.quantity * price
       };
     });
+    console.log('Initial priced items:', initialPricedItems);
     setPricedItems(initialPricedItems);
   };
 
