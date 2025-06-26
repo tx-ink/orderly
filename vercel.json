@@ -1,0 +1,12 @@
+{
+  "name": "deploy-vercel",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "vercel --prod",
+    "deploy-preview": "vercel"
+  },
+  "devDependencies": {
+    "vercel": "^32.5.0"
+  }
+}
