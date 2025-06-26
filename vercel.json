@@ -1,12 +1,11 @@
 {
-  "name": "deploy-vercel",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "deploy": "vercel --prod",
-    "deploy-preview": "vercel"
-  },
-  "devDependencies": {
-    "vercel": "^32.5.0"
-  }
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
