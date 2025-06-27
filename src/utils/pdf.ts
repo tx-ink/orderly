@@ -241,34 +241,39 @@ export const generateInvoice = async (
 
   // Save the PDF with customer name at the end of filename
   const cleanCustomerName = customerName.replace(/[^a-zA-Z0-9]/g, '') || 'Customer';
-  const cleanDate = formattedDate.replace(/\//g, '-');
-  const fileName = `Invoice-${invoiceNumber}-${cleanDate}-${cleanCustomerName}.pdf`;
-    // Use a more reliable download method that works better with browser security
+  const cleanDate = formattedDate.replace(/\//g, '-');  const fileName = `Invoice-${invoiceNumber}-${cleanDate}-${cleanCustomerName}.pdf`;
+    // Use the most compatible approach - let jsPDF handle the download
   try {
-    // Create blob and download link
-    const pdfBlob = doc.output('blob');
-    const url = URL.createObjectURL(pdfBlob);
-    
-    // Create a temporary download link
-    const downloadLink = document.createElement('a');
-    downloadLink.href = url;
-    downloadLink.download = fileName;
-    downloadLink.style.display = 'none';
-    
-    // Add to DOM, click, and remove
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    
-    // Clean up the object URL
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    // Use jsPDF's built-in save method which handles browser compatibility
+    doc.save(fileName);
     
     // Return success
     return Promise.resolve();
   } catch (error) {
-    console.error('Error downloading PDF:', error);
-    // Fallback to the original method
-    doc.save(fileName);
-    return Promise.reject(error);
+    console.error('Error saving PDF:', error);
+    
+    // Fallback: try blob-based approach
+    try {
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      
+      // Create and trigger download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      return Promise.resolve();
+    } catch (fallbackError) {
+      console.error('Fallback download also failed:', fallbackError);
+      return Promise.reject(fallbackError);
+    }
   }
 };

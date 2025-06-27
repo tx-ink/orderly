@@ -200,7 +200,7 @@ function App() {
   // Re-download an existing invoice
   const redownloadInvoice = async (invoice: SavedInvoice) => {
     try {
-      setNotification('Re-downloading PDF invoice...');
+      setNotification('Generating PDF...');
       
       await generateInvoice(
         invoice.customerName, 
@@ -216,11 +216,11 @@ function App() {
         invoice.date
       );
       
-      setNotification('PDF invoice downloaded successfully!');
-      setTimeout(() => setNotification(null), 3000);
+      setNotification('PDF download initiated - check your downloads folder!');
+      setTimeout(() => setNotification(null), 4000);
     } catch (error) {
       console.error('Error re-downloading invoice:', error);
-      setNotification('Error downloading PDF. Please try again.');
+      setNotification('Error generating PDF. Please try again.');
       setTimeout(() => setNotification(null), 5000);
     }
   };
@@ -503,8 +503,8 @@ function App() {
       
       await generateInvoice(customerName, customerAddress, pricedItems, subtotal, shippingCost, taxRate, taxAmount, grandTotal, businessSettings, invoiceNumber, invoiceDate);
       
-      setNotification('PDF invoice downloaded successfully!');
-      setTimeout(() => setNotification(null), 3000);
+      setNotification('PDF download initiated - check your downloads folder!');
+      setTimeout(() => setNotification(null), 4000);
       
       const newInvoiceNumber = invoiceNumber + 1;
       setInvoiceNumber(newInvoiceNumber);
