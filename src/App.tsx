@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { parseOrderData } from './utils/parsing';
-import type { PricedOrderItem } from './utils/types';
+import type { PricedOrderItem, SavedProduct, SavedInvoice } from './utils/types';
 import { generateInvoice } from './utils/pdf';
 import Settings from './components/Settings';
+import { AuthProvider, useAuth } from './components/AuthContext';
+import LoginPage from './components/LoginPage';
+import Dashboard from './components/Dashboard';
+import HelpSupport from './components/HelpSupport';
+import { initGA, trackPageView, trackBusinessEvent } from './utils/analytics';
 
 interface BusinessSettings {
   companyName: string;
@@ -14,28 +19,11 @@ interface BusinessSettings {
   invoiceNote: string;
 }
 
-interface SavedProduct {
-  name: string;
-  price: number;
-  lastUsed: string;
-}
-
-interface SavedInvoice {
-  id: number;
-  customerName: string;
-  customerAddress: string;
-  items: PricedOrderItem[];
-  subtotal: number;
-  shippingCost: number;
-  taxRate: number;
-  taxAmount: number;
-  total: number;
-  date: string;
-  isPaid: boolean;
-  createdAt: string;
-}
-
-function App() {
+const AppContent = () => {
+  const { user, loading, logout } = useAuth();
+  
+  // All useState hooks must be called before any conditional returns
+  const [showDashboard, setShowDashboard] = useState(false);
   const [rawText, setRawText] = useState('');
   const [pricedItems, setPricedItems] = useState<PricedOrderItem[]>([]);
   const [customerName, setCustomerName] = useState('');
@@ -53,6 +41,7 @@ function App() {
   const [savedInvoices, setSavedInvoices] = useState<SavedInvoice[]>([]);
   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
   const [showProductManagement, setShowProductManagement] = useState(false);
+  const [showHelpSupport, setShowHelpSupport] = useState(false);
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings>({
     companyName: '',
     companyAddress: '',
@@ -63,7 +52,11 @@ function App() {
     invoiceNote: 'Thank you for your business!'
   });
 
+  // useEffect must also be called before any conditional returns
   useEffect(() => {
+    // Initialize Google Analytics
+    initGA();
+    
     // Load business settings from localStorage on app start
     const savedSettings = localStorage.getItem('orderly-business-settings');
     if (savedSettings) {
@@ -94,6 +87,36 @@ function App() {
       setSavedInvoices(JSON.parse(savedInvoicesData));
     }
   }, []);
+  
+  // Show loading spinner while Firebase auth is checking
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh',
+        background: '#1a1a1a',
+        color: 'white'
+      }}>
+        <div className="loading-spinner" style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #333',
+          borderTop: '4px solid #007bff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ marginTop: '1rem' }}>Loading...</p>
+      </div>
+    );
+  }
+  
+  // Show login page if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
 
   // Save customer when invoice is generated
   const saveCustomer = () => {
@@ -401,16 +424,27 @@ function App() {
             <h1 className="app-logo">Orderly</h1>
           </div>
         </div>
-        {showBackButton && onBack && (
-          <div className="header-right">
+        <div className="header-right">
+          {showBackButton && onBack && (
             <button 
               className="btn btn-secondary"
               onClick={onBack}
+              style={{ marginRight: '1rem' }}
             >
               ← Back to Orders
             </button>
+          )}
+          <div className="user-menu">
+            <span className="user-name">{user?.displayName || user?.email}</span>
+            <button 
+              className="btn btn-secondary"
+              onClick={logout}
+              title="Sign out"
+            >
+              Sign Out
+            </button>
           </div>
-        )}
+        </div>
       </div>
       {pageTitle && (
         <div className="page-header">
@@ -443,9 +477,7 @@ function App() {
   };
 
   const handleParse = () => {
-    console.log('Raw text:', rawText);
     const data = parseOrderData(rawText);
-    console.log('Parsed data:', data);
     const initialPricedItems = data.map(item => {
       const productName = item.category; // Use category as initial product name
       const suggestedPrice = getSuggestedPrice(productName);
@@ -458,7 +490,6 @@ function App() {
         subtotal: item.quantity * price
       };
     });
-    console.log('Initial priced items:', initialPricedItems);
     setPricedItems(initialPricedItems);
   };
 
@@ -502,6 +533,9 @@ function App() {
       saveInvoice(); // Save the invoice record
       
       await generateInvoice(customerName, customerAddress, pricedItems, subtotal, shippingCost, taxRate, taxAmount, grandTotal, businessSettings, invoiceNumber, invoiceDate);
+      
+      // Track business event
+      trackBusinessEvent.invoiceGenerated(grandTotal, customerName);
       
       setNotification('PDF download initiated - check your downloads folder!');
       setTimeout(() => setNotification(null), 4000);
@@ -547,6 +581,9 @@ function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // Track business event
+    trackBusinessEvent.dataExported();
   };
 
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -591,6 +628,172 @@ function App() {
     };
     reader.readAsText(file);
   };
+
+  if (showHelpSupport) {
+    return (
+      <div className="container">
+        <HelpSupport onBack={() => setShowHelpSupport(false)} />
+      </div>
+    );
+  }
+
+  if (showDashboard) {
+    // Track dashboard view
+    useEffect(() => {
+      trackPageView('Dashboard');
+      trackBusinessEvent.dashboardViewed();
+    }, []);
+
+    return (
+      <div className="container">
+        {/* Navigation Overlay - available on Dashboard page */}
+        {showNavigation && (
+          <div 
+            className="nav-overlay"
+            onClick={() => setShowNavigation(false)}
+          >
+            <div 
+              className="nav-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="nav-header">
+                <h3>Navigation</h3>
+                <button 
+                  className="nav-close"
+                  onClick={() => setShowNavigation(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <nav className="nav-menu">
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    setShowSettings(true);
+                    setShowDashboard(false);
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>⚙️</span>
+                  Business Settings
+                </button>
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    setShowDashboard(true);
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>📊</span>
+                  Dashboard
+                </button>
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    setShowProductManagement(true);
+                    setShowDashboard(false);
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>📦</span>
+                  Product Management
+                  <small>{savedProducts.length} products</small>
+                </button>
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    setShowInvoiceHistory(true);
+                    setShowDashboard(false);
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>📋</span>
+                  Invoice History
+                  <small>{savedInvoices.length} invoices</small>
+                </button>
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    setShowDashboard(false);
+                    setShowSettings(false);
+                    setShowProductManagement(false);
+                    setShowInvoiceHistory(false);
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>🏠</span>
+                  Order Processing
+                </button>
+                <button 
+                  className="nav-item"
+                  onClick={() => setShowNavigation(false)}
+                >
+                  <span>👥</span>
+                  Customer Database
+                  <small>{customers.length} customers</small>
+                </button>
+                <div className="nav-divider"></div>
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    exportData();
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>💾</span>
+                  Export Data
+                  <small>Backup your data</small>
+                </button>
+                <button className="nav-item" style={{ position: 'relative' }}>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importData}
+                    style={{
+                      position: 'absolute',
+                      opacity: 0,
+                      width: '100%',
+                      height: '100%',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <span>📥</span>
+                  Import Data
+                  <small>Restore from backup</small>
+                </button>
+                <div className="nav-divider"></div>
+                <button 
+                  className="nav-item"
+                  onClick={() => {
+                    setShowHelpSupport(true);
+                    setShowNavigation(false);
+                  }}
+                >
+                  <span>❓</span>
+                  Help & Support
+                </button>
+              </nav>
+            </div>
+          </div>
+        )}
+
+        <AppHeader 
+          showBackButton={true}
+          onBack={() => setShowDashboard(false)}
+          pageTitle="Business Dashboard"
+          pageSubtitle="Analytics and insights for your business"
+        />
+        
+        <main>
+          <Dashboard 
+            savedInvoices={savedInvoices}
+            savedProducts={savedProducts}
+            customers={customers}
+          />
+        </main>
+      </div>
+    );
+  }
 
   if (showSettings) {
     return (
@@ -1034,6 +1237,14 @@ function App() {
     );
   }
 
+  if (showHelpSupport) {
+    return (
+      <div className="container">
+        <HelpSupport onBack={() => setShowHelpSupport(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       {/* Navigation Overlay */}
@@ -1068,11 +1279,13 @@ function App() {
               </button>
               <button 
                 className="nav-item"
-                onClick={() => setShowNavigation(false)}
+                onClick={() => {
+                  setShowDashboard(true);
+                  setShowNavigation(false);
+                }}
               >
                 <span>📊</span>
                 Dashboard
-                <small>Coming Soon</small>
               </button>
               <button 
                 className="nav-item"
@@ -1453,6 +1666,15 @@ function App() {
       </footer>
     </div>
   );
-}
+};
+
+// Main App component with Authentication Provider
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
 
 export default App;

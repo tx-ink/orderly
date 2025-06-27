@@ -1,15 +1,78 @@
-# React + TypeScript + Vite
+# Orderly - Professional Invoice Generator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, secure web application for transforming order data into professional PDF invoices with Google Authentication.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **🔐 Secure Authentication**: Google Sign-in with Firebase
+- **📄 PDF Invoice Generation**: Professional, customizable invoices
+- **📊 Business Dashboard**: Analytics and insights
+- **📦 Product Management**: Automated pricing and product database
+- **👥 Customer Database**: Auto-complete and history tracking
+- **🧾 Invoice History**: Payment tracking and re-download capability
+- **💾 Data Backup/Restore**: Export and import your business data
+- **🎨 Modern UI**: Clean, responsive design with dark theme
 
-## Expanding the ESLint configuration
+## 🚀 Quick Start
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Clone and Install**:
+   ```bash
+   git clone <your-repo>
+   cd orderly
+   npm install
+   ```
+
+2. **Firebase Setup**:
+   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
+   - Enable Google Authentication
+   - Copy your Firebase config to `.env`:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+
+3. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for Production**:
+   ```bash
+   npm run build
+   ```
+
+## 🛠️ Technology Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **Authentication**: Firebase Auth (Google)
+- **PDF Generation**: jsPDF + jsPDF-AutoTable
+- **Styling**: CSS3 with CSS Variables
+- **Build Tool**: Vite
+- **Deployment**: Vercel Ready
+
+## 📋 Usage
+
+1. **Sign In**: Use your Google account to authenticate
+2. **Configure Business**: Set up your company details in Settings
+3. **Process Orders**: Paste order data and let the parser extract items
+4. **Set Pricing**: Auto-suggested prices from your product database
+5. **Generate Invoices**: Create professional PDF invoices instantly
+6. **Track Business**: Monitor revenue and customer data in Dashboard
+
+## 🔒 Security
+
+- Environment variables for sensitive Firebase config
+- Authenticated routes protection
+- Secure Google OAuth flow
+- Local data storage with export/import capabilities
+
+## 📄 License
+
+MIT License - feel free to use for your business needs.
 
 ```js
 export default tseslint.config({
